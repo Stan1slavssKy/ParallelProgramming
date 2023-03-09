@@ -87,6 +87,33 @@ int GetFactorialNumber(int accuracy)
     return factorial_number;
 }
 
+double CalculatePartExponentSum(int factorial_number, int start, int end)
+{
+    //std::cout << " [ " << start << ", " << end << " ] " << std::endl;
+    mpz_t sum;
+    mpz_init(sum);
+    mpz_t factorial;
+    mpz_init(factorial);
+    mpz_fac_ui(factorial, factorial_number);
+
+    for (int idx = 2; idx <= start; ++idx) {
+        mpz_cdiv_ui(factorial, idx);
+    }
+    mpz_add(sum, sum, factorial);
+
+    for (int idx = start + 1; idx < end; ++idx) {
+        mpz_cdiv_ui(factorial, idx);
+        mpz_add(sum, sum, factorial);
+    }
+
+    double part_summ = 
+
+    mpz_clear(factorial);
+    mpz_clear(sum);
+
+    return part_summ;
+}
+
 int main(int argc, char** argv)
 {
     int mpi_status = MPI_Init(&argc, &argv);
@@ -104,7 +131,39 @@ int main(int argc, char** argv)
 
     int factorial_number = GetFactorialNumber(accuracy);
 
-    std::cout << factorial_number << std::endl;
+    //std::cout << "factorial_number = " << factorial_number << std::endl;
+
+    const int root_task_id = 0;
+    int commsize = 0;
+    int task_id = 0;
+
+    MPI_Comm_size(MPI_COMM_WORLD, &commsize);
+    MPI_Comm_rank(MPI_COMM_WORLD, &task_id);
+
+    int distance = factorial_number / commsize;
+    int remainder = factorial_number % commsize;
+    int start = 1 + distance * task_id;
+    int end = 1 + distance * (task_id + 1);
+
+    // If the remainder is not zero, we add 1 term of the sum to each process starting from zero
+    if (remainder != 0) {
+        if (remainder - task_id > 0) {
+            start += task_id;
+            end += task_id + 1;
+        }
+        else {
+            start += remainder;
+            end += remainder;
+        }
+    }
+
+    mpf_t result_sum;
+    mpf_init(result_sum);
+    mpf_set_ui(result_sum, 1);
+
+    double part_sum = CalculatePartExponentSum(factorial_number, start, end);
+
+    mpf_clear(result_sum);
 
     MPI_Finalize();
 
