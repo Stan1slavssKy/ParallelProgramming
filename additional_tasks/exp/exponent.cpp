@@ -61,32 +61,32 @@ void AccuracyErrorHandling(int accuracy, int errnum)
     }
 }
 
-/* Calculate the last factorial required for input accuracy to get the correct exponent */
-int GetFactorialNumber(int accuracy) 
+/**
+ * Newton's method for solving a nonlinear equation
+ * We need n! > 10 ^ accuracy
+ * n * ln(n) - n > accuracy * ln(10)
+ * x * ln(x) - x > cnst
+ * F(x_n) = x_n * ln(x_n) - x_n - cnst
+ * x_{n+1} = x_n - F(x_n) / F'(x_n)
+*/
+int GetFactorialNumberNewtonMethod(int accuracy) 
 {
-    mpz_t rop; // required_factorial_accuracy
-    mpz_init(rop);
+    double x_0 = 2.0;
+    double cnst = (double)accuracy * std::log(10.0);
+    double epsilon = 1.0;
 
-    mpz_t base;
-    mpz_init(base);
+    double prev_x = x_0;
+    double cur_x = 0;
 
-    mpz_t factorial;
-    mpz_init(factorial);
-	mpz_set_ui(factorial, 2);
-
-	mpz_set_ui(base, 10);
-    mpz_pow_ui(rop, base, accuracy); // rop = 10 ^ accuracy
-
-    int factorial_number = 2;
-
-    while (mpz_cmp(rop, factorial) >= 0) { // find n that n! > 10 ^ accuracy
-        mpz_mul_si(factorial, factorial, ++factorial_number);
+    while (true) {
+        cur_x = prev_x - ((prev_x * std::log(prev_x) - prev_x - cnst) / std::log(prev_x));
+        if (abs(cur_x - prev_x) < epsilon) {
+            return (int)ceil(cur_x);
+        }
+        prev_x = cur_x;
     }
 
-    mpz_clear(factorial);
-    mpz_clear(rop);
-	mpz_clear(base);
-    return factorial_number;
+    return -1;
 }
 
 void CalculatePartExponentSum(mpf_t part_sum, int factorial_number, int start, int end)
@@ -149,11 +149,10 @@ int main(int argc, char** argv)
         MPI_Finalize();
         return EXIT_FAILURE;
     }
-
     mpf_set_default_prec(64 + ceil(3.33 * accuracy));
 
-    int factorial_number = GetFactorialNumber(accuracy);
-    
+    int factorial_number = GetFactorialNumberNewtonMethod(accuracy);
+
     const int root_task_id = 0;
     int commsize = 0;
     int task_id = 0;
