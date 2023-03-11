@@ -1,4 +1,4 @@
 build:
-	mpic++ exponent.cpp -lm -lgmpxx -lgmp -o exponent
+	mpic++ exponent.cpp -Wall -lm -lgmpxx -lgmp -o exponent
 run:
-	mpirun -np 8 ./exponent 1000 > output.txt
+	mpirun -np 8 ./exponent 10000 > output.txt
