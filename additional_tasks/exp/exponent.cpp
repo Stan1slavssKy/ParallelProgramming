@@ -91,25 +91,23 @@ int GetFactorialNumber(int accuracy)
 
 void CalculatePartExponentSum(mpf_t part_sum, int factorial_number, int start, int end)
 {
-   // std::cout << " [ " << start << ", " << end << " ] " << std::endl;
     mpz_t sum;
     mpz_init(sum);
-    if ((end - start) != 1) {
-	    mpz_set_ui(sum, 1); // 1 is the last element in summ
-    }
+	mpz_set_ui(sum, 1); // 1 is the last element in summ
 
     int current_num = end - 1;
 
     mpz_t reverse_factorial;
     mpz_init(reverse_factorial);
 	mpz_set_ui(reverse_factorial, end - 1);
-    mpz_add(sum, sum, reverse_factorial);
-    --current_num;
+    if ((end - start) != 1) {
+        mpz_add(sum, sum, reverse_factorial);
+        --current_num;
+    }
 
     for (int idx = 0; idx < end - start - 2; ++idx) {
         mpz_mul_ui(reverse_factorial, reverse_factorial, current_num);
         mpz_add(sum, sum, reverse_factorial);
-        // gmp_printf ("current_sum = %Zd\n", sum);
         --current_num;
         if (current_num == 0) {
             break;
@@ -128,9 +126,6 @@ void CalculatePartExponentSum(mpf_t part_sum, int factorial_number, int start, i
     mpf_t reverse_factorial_f;
     mpf_init(reverse_factorial_f);
     mpf_set_z(reverse_factorial_f, reverse_factorial);
-
-    // gmp_printf ("sum_f____[D] = %.*Ff\n", 2000, sum_f);
-    // gmp_printf ("reverse_f[D] = %.*Ff\n", 2000, reverse_factorial_f);
 
     mpf_div(part_sum, sum_f, reverse_factorial_f);
     
@@ -158,9 +153,7 @@ int main(int argc, char** argv)
     mpf_set_default_prec(64 + ceil(3.33 * accuracy));
 
     int factorial_number = GetFactorialNumber(accuracy);
-
- //    std::cout << "factorial_number = " << factorial_number << std::endl;
-
+    
     const int root_task_id = 0;
     int commsize = 0;
     int task_id = 0;
@@ -193,47 +186,34 @@ int main(int argc, char** argv)
     mpf_init(part_sum);
 
     CalculatePartExponentSum(part_sum, factorial_number, start, end);
-    // gmp_printf ("[Rank = %d] part_suma[D] = %.*Ff\n", task_id, 2000, part_sum);
 
     MPI_Status status;
 
-    mp_exp_t exp = 0;
-    char* part_sum_str = mpf_get_str(nullptr, &exp, 0, 0, part_sum);
-    size_t part_sum_str_len = strlen(part_sum_str);
-    // printf ("[Rank = %d] exp = %d, part_suma[D] = %s\n", task_id, exp, part_sum_str);
     if (task_id == root_task_id) {
         mpf_add(result_sum, result_sum, part_sum);
-        //gmp_printf ("part_summmma( = %.*Ff\n", 2000, part_sum);
 
-        for (int idx = 1; idx < commsize; ++idx) { // idx == task_id
-            MPI_Recv(&exp, 1, MPI_LONG, idx, 0, MPI_COMM_WORLD, &status);
-            MPI_Recv(&part_sum_str_len, 1, MPI_LONG, idx, 0, MPI_COMM_WORLD, &status);
-            
-            if (exp <= 0) {                                             // | 0 | . | exp | length |
-                size_t recv_str_len = part_sum_str_len + abs(exp) + 2;  // |___|___|_____|________|
-                                                                        //  |             |
-                part_sum_str = new char[recv_str_len];                  //  part_s_str    receive here
-                std::fill_n(part_sum_str, recv_str_len, '0');
-                std::fill(part_sum_str + 1, part_sum_str + 2, '.');
+        char *rvc_buf = (char *) calloc(accuracy + 8, sizeof(char));
 
-                MPI_Recv(part_sum_str + abs(exp) + 2, part_sum_str_len, MPI_CHAR, idx, 0, MPI_COMM_WORLD, &status);
-            } else {
-                part_sum_str = new char[part_sum_str_len];
-                MPI_Recv(part_sum_str, part_sum_str_len, MPI_CHAR, idx, 0, MPI_COMM_WORLD, &status); 
-            }
-
-            mpf_set_str(part_sum, part_sum_str, 10);
-                    // std::cout << part_sum_str << "[TASK_ID = " << idx << "]" << "exp =" << exp << std::endl;
-            delete[] part_sum_str;
-            // gmp_printf ("part_summmma = %.*Ff\n", 2000, part_sum);
+        for (int idx = 1; idx < commsize; ++idx) {
+            MPI_Recv(rvc_buf, accuracy + 8, MPI_CHAR, idx, 0, MPI_COMM_WORLD, &status);
+            mpf_set_str(part_sum, rvc_buf, 10);
             mpf_add(result_sum, result_sum, part_sum);
-        }      
-        
+        }
+        free(rvc_buf);
         gmp_printf ("[RESULT] Exp = %.*Ff\n", accuracy, result_sum);
-    } else {
-        MPI_Send(&exp, 1, MPI_LONG, root_task_id, 0, MPI_COMM_WORLD);
-        MPI_Send(&part_sum_str_len, 1, MPI_LONG, root_task_id, 0, MPI_COMM_WORLD);
-        MPI_Send(part_sum_str, part_sum_str_len, MPI_CHAR, root_task_id, 0, MPI_COMM_WORLD);
+    }
+    else {
+        char *mpi_buf = (char *) calloc(accuracy + 8, sizeof(char));
+        char *format_str = (char *) calloc(accuracy + 12, sizeof(char));
+
+        size_t format_str_size = accuracy + 12;
+
+        snprintf(format_str, format_str_size, "%%.%dFf", accuracy);
+        gmp_snprintf(mpi_buf, accuracy + 8, format_str, part_sum);
+        MPI_Send(mpi_buf, accuracy + 8, MPI_CHAR, 0, 0, MPI_COMM_WORLD);
+
+        free(format_str);
+        free(mpi_buf);
     }
 
     mpf_clear(result_sum);
