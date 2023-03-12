@@ -89,7 +89,7 @@ int GetFactorialNumberNewtonMethod(int accuracy)
     return -1;
 }
 
-void CalculatePartExponentSum(mpf_t part_sum, int factorial_number, int start, int end)
+void CalculatePartExponentSum(mpf_t part_sum, int factorial_number, int start, int end, int task_id, int commsize)
 {
     mpz_t sum;
     mpz_init(sum);
@@ -114,9 +114,36 @@ void CalculatePartExponentSum(mpf_t part_sum, int factorial_number, int start, i
         }
     }
 
-    while (current_num > 1) {
-        mpz_mul_ui(reverse_factorial, reverse_factorial, current_num);
-        --current_num;
+    if (commsize > 1) {
+        if (task_id == 0) {
+            char* factorial_str = mpz_get_str(nullptr, 10, reverse_factorial);
+            MPI_Send(factorial_str, strlen(factorial_str) + 1, MPI_CHAR, task_id + 1, 0, MPI_COMM_WORLD);
+        }
+        if (task_id > 0) {
+            MPI_Status status;
+
+            int rcv_fact_len = 0;
+            MPI_Probe(task_id - 1, 0, MPI_COMM_WORLD, &status);
+            MPI_Get_count(&status, MPI_CHAR, &rcv_fact_len);
+
+            char* rcv_factorial_str = (char*)calloc(rcv_fact_len + 1, sizeof(char));
+            MPI_Recv(rcv_factorial_str, rcv_fact_len + 1, MPI_CHAR, task_id - 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+            mpz_t prev_factorial;
+            mpz_init_set_str(prev_factorial, rcv_factorial_str, 10);
+
+            mpz_mul_ui(reverse_factorial, reverse_factorial, start);
+            mpz_mul(reverse_factorial, reverse_factorial, prev_factorial);
+
+            if (task_id != (commsize - 1)) {
+                char* factorial_str = mpz_get_str(nullptr, 10, reverse_factorial);
+                int fact_len = std::strlen(factorial_str);
+                MPI_Send(factorial_str, fact_len + 1, MPI_CHAR, task_id + 1, 0, MPI_COMM_WORLD);
+            }
+
+            free(rcv_factorial_str);
+            mpz_clear(prev_factorial);
+        }
     }
 
     mpf_t sum_f;
@@ -129,10 +156,8 @@ void CalculatePartExponentSum(mpf_t part_sum, int factorial_number, int start, i
 
     mpf_div(part_sum, sum_f, reverse_factorial_f);
     
-    mpz_clear(reverse_factorial);
-    mpz_clear(sum);
-    mpf_clear(reverse_factorial_f);
-    mpf_clear(sum_f);
+    mpz_clears(reverse_factorial, sum, nullptr);
+    mpf_clears(reverse_factorial_f, sum_f, nullptr);
 }
 
 int main(int argc, char** argv)
@@ -184,14 +209,14 @@ int main(int argc, char** argv)
     mpf_t part_sum;
     mpf_init(part_sum);
 
-    CalculatePartExponentSum(part_sum, factorial_number, start, end);
+    CalculatePartExponentSum(part_sum, factorial_number, start, end, task_id, commsize);
 
     MPI_Status status;
 
     if (task_id == root_task_id) {
         mpf_add(result_sum, result_sum, part_sum);
 
-        char *rvc_buf = (char *) calloc(accuracy + 8, sizeof(char));
+        char *rvc_buf = (char*)calloc(accuracy + 8, sizeof(char));
 
         for (int idx = 1; idx < commsize; ++idx) {
             MPI_Recv(rvc_buf, accuracy + 8, MPI_CHAR, idx, 0, MPI_COMM_WORLD, &status);
@@ -202,8 +227,8 @@ int main(int argc, char** argv)
         gmp_printf ("[RESULT] Exp = %.*Ff\n", accuracy, result_sum);
     }
     else {
-        char *mpi_buf = (char *) calloc(accuracy + 8, sizeof(char));
-        char *format_str = (char *) calloc(accuracy + 12, sizeof(char));
+        char *mpi_buf = (char*)calloc(accuracy + 8, sizeof(char));
+        char *format_str = (char*)calloc(accuracy + 12, sizeof(char));
 
         size_t format_str_size = accuracy + 12;
 
