@@ -8,12 +8,12 @@
 namespace Equation {
 
 constexpr double a = 1.0;
-constexpr double X = 1.0;
+constexpr double X = 5000.0;
 constexpr double T = 1.0;
 
 double func(double x, double t)
 { 
-    return t + x;
+    return std::exp(std::sin(x * t));
 }
 
 double phi(double x)

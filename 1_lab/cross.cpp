@@ -4,15 +4,22 @@
 #include <fstream>
 #include <cassert>
 #include <memory.h>
+#include <unistd.h>
 
 #include "cross.h"
 
 int main(int argc, char** argv) {
     MPI::Init(argc, argv);
-    double start_wtime = MPI::Wtime();
 
     auto rank = MPI::COMM_WORLD.Get_rank();
     auto commsize = MPI::COMM_WORLD.Get_size();
+
+    cpu_set_t mask;
+    CPU_ZERO(&mask);
+    CPU_SET(2 * rank, &mask);
+    sched_setaffinity(getpid(), sizeof(cpu_set_t), &mask);
+
+    double start_wtime = MPI::Wtime();
 
     // made constructor that allocate memory for different rank
     Solution result(rank, commsize);
@@ -28,11 +35,12 @@ int main(int argc, char** argv) {
     double end_wtime = MPI::Wtime();
 
     if (rank == 0) {
-        std::cout << "[TIME = "<< end_wtime - start_wtime << "]" << std::endl;
-
+        std::cout << "exec_time: " << end_wtime - start_wtime << std::endl;
+        #ifdef ENABLE_SAVING_PICTURE
         std::string name = "res.txt";
         std::ofstream f(name);
         result.PrintRes(f);
+        #endif
     }
 
     MPI::Finalize();
