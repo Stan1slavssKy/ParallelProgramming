@@ -21,9 +21,9 @@ int main(int argc, char** argv) {
     CPU_SET(2 * rank, &mask);
     sched_setaffinity(getpid(), sizeof(cpu_set_t), &mask);
 
-    double start_wtime = MPI::Wtime();
-
     Worker result(rank, commsize);
+    
+    double start_wtime = MPI::Wtime();
     
     result.FillInitialConditions();
     result.CalculateFirstLineByRectangleMethod();

@@ -2,7 +2,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from pathlib import Path
 
-file = Path("/home/stanislav/ParallelProgramming/1_lab/build/res.txt")
+file = Path("/home/stanislav/ParallelProgramming/1_semester/1_lab/build/res.txt")
 
 params = {
 "tau": 0,
@@ -38,5 +38,5 @@ ax.plot_surface(X, T, U, cmap='coolwarm')
 ax.set_xlabel("$x$", fontsize=20)
 ax.set_ylabel("$t$", fontsize=20)
 ax.set_zlabel("$u(x, t)$", fontsize=20)
-plt.savefig("/home/stanislav/ParallelProgramming/1_lab/images/res.png")
+plt.savefig("/home/stanislav/ParallelProgramming/1_semester/1_lab/images/res.png")
 plt.show()

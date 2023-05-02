@@ -15,11 +15,11 @@ build_picture:
 
 picture: build_picture
 	mpirun -np 7 ${ODIR}/cross
-	/bin/python3 /home/stanislav/ParallelProgramming/1_lab/script.py
+	/bin/python3 /home/stanislav/ParallelProgramming/1_semester/1_lab/script.py
 
 statistic: build
 	sudo ./run_lab.sh
-	/bin/python3 /home/stanislav/ParallelProgramming/1_lab/statistic.py
+	/bin/python3 /home/stanislav/ParallelProgramming/1_semester/1_lab/statistic.py
 
 delay_research_run:
 	mpic++ ${DELAY_SRCDIR}/delay.cpp -Wall -lm -o ${ODIR}/delay

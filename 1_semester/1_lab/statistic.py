@@ -26,9 +26,9 @@ def parse_file(vals, T_vals):
                 vals = vals + float(line[-1])
                 counter = counter + 1
             elif (line[0] == 'X:'):
-                X_param = int(line[-1])
+                X_param = float(line[-1])
             elif (line[0] == 'T:'):
-                T_param = int(line[-1])
+                T_param = float(line[-1])
 
         if (counter != 0):
             T_vals[number - 1] = vals / counter
@@ -47,5 +47,5 @@ plt.plot(p, S)
 plt.xlabel("p")
 plt.ylabel("S")
 plt.grid()
-plt.savefig('/home/stanislav/ParallelProgramming/1_lab/images/statistic_x_' + str(X_param) + '_t_' + str(T_param) + '.png')
+plt.savefig('/home/stanislav/ParallelProgramming/1_semester/1_lab/images/statistic_x_' + str(X_param) + '_t_' + str(T_param) + '.png')
 plt.show()
