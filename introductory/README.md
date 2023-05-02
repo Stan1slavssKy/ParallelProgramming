@@ -1,3 +1,0 @@
-## Run program:
-    mpic++ programm.cpp -o programm.o
-    mpirun -np 16 ./programm.o args...

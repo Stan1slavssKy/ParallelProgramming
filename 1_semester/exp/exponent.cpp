@@ -174,7 +174,7 @@ int main(int argc, char** argv)
         MPI_Finalize();
         return EXIT_FAILURE;
     }
-    mpf_set_default_prec(64 + ceil(3.33 * accuracy));
+    mpf_set_default_prec(64 + 4 * accuracy);
 
     int factorial_number = GetFactorialNumberNewtonMethod(accuracy);
 
