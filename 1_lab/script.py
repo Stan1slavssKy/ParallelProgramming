@@ -2,7 +2,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from pathlib import Path
 
-file = Path("/home/stanislav/ParallelProgramming/1_lab/res.txt")
+file = Path("/home/stanislav/ParallelProgramming/1_lab/build/res.txt")
 
 params = {
 "tau": 0,
