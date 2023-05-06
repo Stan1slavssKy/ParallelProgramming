@@ -99,31 +99,58 @@ void Worker::CalculateFirstLineByRectangleMethod()
 void Worker::CalculateOtherLinesByCrossMethod()
 {
     for (size_t k = 1; k < K_ - 1; ++k) {
-        double recv_value = 0; 
+        double recv_left_value = 0; 
+        double recv_right_value = 0;
+        MPI_Status status;
+
         if (rank_ != 0) {
-            MPI_Status status;
-            MPI_Recv(&recv_value, 1, MPI::DOUBLE, rank_ - 1, 0, MPI_COMM_WORLD, &status);
+            // send value to left
+            int buf_size = sizeof(double) + MPI_BSEND_OVERHEAD;
+            double* buf = new double[buf_size];
+            MPI_Buffer_attach(buf, buf_size);
+            MPI_Bsend(values_ + cols_ * k, 1, MPI::DOUBLE, rank_ - 1, 0, MPI_COMM_WORLD);
+            MPI_Buffer_detach(&buf, &buf_size);
+            delete[] buf;
         }
         if (rank_ != commsize_ - 1) {
-            // send last value in already filled layer
-            MPI_Send(values_ + cols_ * k + cols_ - 1, 1, MPI::DOUBLE, rank_ + 1, 0, MPI_COMM_WORLD);
+            // send value to right
+            int buf_size = sizeof(double) + MPI_BSEND_OVERHEAD;
+            double* buf = new double[buf_size];
+            MPI_Buffer_attach(buf, buf_size);
+            MPI_Bsend(values_ + cols_ * k + cols_ - 1, 1, MPI::DOUBLE, rank_ + 1, 0, MPI_COMM_WORLD);
+            MPI_Buffer_detach(&buf, &buf_size);
+            delete[] buf;
         }
 
         // if rank = 0 we dont need to calculate m = 0
-        for (size_t m = (rank_ == 0); m < cols_ - 1; ++m) {
+        for (size_t m = (rank_ == 0); m < cols_; ++m) {
             if (m != 0) {
-                recv_value = values_[cols_ * k + m - 1];
+                recv_left_value = values_[cols_ * k + m - 1];
+            } else if (rank_ != 0) {
+                // recv value from left
+                MPI_Recv(&recv_left_value, 1, MPI::DOUBLE, rank_ - 1, 0, MPI_COMM_WORLD, &status);
             }
-            double first_part = (-1.0 * values_[cols_ * (k - 1) + m]) / (2 * tau);
-            double second_part = Equation::a * (values_[cols_ * k + m + 1] - recv_value) / (2 * h);
-            double func_part = Equation::func((start_pos_ + m) * h, k * tau);
-            values_[cols_ * (k + 1) + m] = (func_part - first_part - second_part) * 2 * tau;
+            if (m != cols_ - 1) {
+                recv_right_value = values_[cols_ * k + m + 1];
+            } else if (rank_ != commsize_ - 1) {
+                // recv value from right
+                MPI_Recv(&recv_right_value, 1, MPI::DOUBLE, rank_ + 1, 0, MPI_COMM_WORLD, &status);
+            }
+
+            if (m == cols_ - 1 && rank_ == commsize_ - 1) {
+                // rectangle method for case of last worker
+                double first_part = (values_[cols_ * (k + 1) + m - 1] - values_[cols_ * k + m - 1] - values_[cols_ * k + m]) / (2 * tau);
+                double second_part = Equation::a * (-1.0 * values_[cols_ * (k + 1) + m - 1] + values_[cols_ * k + m] - values_[cols_ * k + m - 1]) / (2 * h);
+                double func_part = Equation::func((start_pos_ + m + 0.5) * h, (k + 0.5) * tau);
+                values_[cols_ * (k + 1) + m] = (func_part - first_part - second_part) * 2 * tau * h / (h + Equation::a * tau);
+            } else {
+                // cross method in other cases
+                double first_part = (-1.0 * values_[cols_ * (k - 1) + m]) / (2 * tau);
+                double second_part = Equation::a * (recv_right_value - recv_left_value) / (2 * h);
+                double func_part = Equation::func((start_pos_ + m) * h, k * tau);
+                values_[cols_ * (k + 1) + m] = (func_part - first_part - second_part) * 2 * tau;
+            }
         }
-        size_t m = cols_ - 1;
-        double first_part = (values_[cols_ * (k + 1) + m - 1] - values_[cols_ * k + m - 1] - values_[cols_ * k + m]) / (2 * tau);
-        double second_part = Equation::a * (-1.0 * values_[cols_ * (k + 1) + m - 1] + values_[cols_ * k + m] - values_[cols_ * k + m - 1]) / (2 * h);
-        double func_part = Equation::func((start_pos_ + m + 0.5) * h, (k + 0.5) * tau);
-        values_[cols_ * (k + 1) + m] = (func_part - first_part - second_part) * 2 * tau * h / (h + Equation::a * tau);
     }
 }
 

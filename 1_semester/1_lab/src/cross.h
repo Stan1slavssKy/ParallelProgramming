@@ -49,7 +49,6 @@ constexpr size_t M = Equation::X / h;
  * The 2 step with the use of the rectangle method is to fill in the second layer
  * We use the rectangle in order not to lose the accuracy of the Cross algorithm
  * 
- * 0 0 0 0 0         + 0 0 0 0         + 0 0 0 0
  * 0 0 0 0 0   (1)   + 0 0 0 0   (2)   + 0 0 0 0
  * 0 0 0 0 0  ---->  + 0 0 0 0  ---->  + 0 0 0 0 
  * 0 0 0 0 0         + 0 0 0 0         + + + + +
@@ -59,15 +58,8 @@ constexpr size_t M = Equation::X / h;
  * 
  * The algorithm consists in splitting the field into n equal parts, where n is the number of processes
  * The problem of Cross is that in boundary parts we cant calculate values. Suggestion sulution is to 
- * сonsider these numbers as a rectangle
- * 
- * | 0  0  0  |          | 0  0  0 |                  |  0   0   0 |            |  0   0   0  |              | 0   0   0  |
- * | 0  0  0  |   Send   | 0  0  0 |   Recv + Cross   | {+}  0   0 |   Cross    |  +  {+}  0  |  Rectangle   | +  (+) {+} |
- * | +  + (+) |  ------> | +  +  + |  ------------->  |  +  (+)  + |  ------->  | (+)  +  (+) | -----------> | +  (+) (+) |
- * | +  +  +  |          | +  +  + |                  | (+)  +   + |            |  +  (+)  +  |              | +   +   +  |
- * | +  +  +  |          | +  +  + |                  |  +   +   + |            |  +   +   +  |              | +   +   +  |
- * |__________|          |_________|                  |____________|            |_____________|              |____________|
- *    k - 1                   k                              k                         k                            k
+ * use Bsend to send left and rigth boundary value of process k. And in the last worker last boundary 
+ * value is calculating by rectangle method
 */
 
 class Worker {
