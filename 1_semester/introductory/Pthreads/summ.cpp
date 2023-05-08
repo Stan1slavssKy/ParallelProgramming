@@ -36,7 +36,7 @@ int GetSumElementsNumber(int argc, char** argv)
     int N = std::atoi(argv[argc - 1]);
     if (N == 0) {
         std::cout << "You pass into arg N = 0 or atoi conversion can't be performed" << std::endl;
-        return 0;
+        return -1;
     }
 
     return N;
@@ -45,6 +45,9 @@ int GetSumElementsNumber(int argc, char** argv)
 int main(int argc, char **argv)
 {
     int N = GetSumElementsNumber(argc, argv);
+    if (N < 0) {
+        return 1;
+    }
     int distance = N / THREAD_NUMBER;
     if (distance == 0) {
         std::cerr << "Too many threads or N too low" << std::endl;
