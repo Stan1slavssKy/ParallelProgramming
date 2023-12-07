@@ -24,3 +24,4 @@ int main() {
     array_handler.DumpToFile("first_task_result.txt");
     return 0;
 }
+    
