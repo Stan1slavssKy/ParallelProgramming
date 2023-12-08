@@ -1,11 +1,12 @@
 #include <mpi.h>
 #include <cmath>
 #include <unistd.h>
+#include <string>
 
 #include "array_file_output.h"
 #include "scoped_time_measure.h"
 
-static constexpr size_t ISIZE = 5000;
+static constexpr size_t ISIZE = 15000;
 static constexpr size_t JSIZE = ISIZE;
 
 void MPIParallelization(double *current_array, int number_rows);
@@ -51,7 +52,7 @@ int main(int argc, char **argv) {
 
     double *current_array = new double[number_rows * JSIZE];
     for (int i = 0; i < number_rows; ++i) {
-        for (int j = 0; j < JSIZE; ++j) {
+        for (size_t j = 0; j < JSIZE; ++j) {
             current_array[JSIZE * i + j] = 10 * (start + i) + j;
         }
     }
@@ -67,7 +68,11 @@ int main(int argc, char **argv) {
     double end_wtime = MPI::Wtime();
     if (rank == 0) {
         std::cout << "exec_time: " << end_wtime - start_wtime << std::endl;
-        DumpToFile("baseline_MYYYY.txt", main_array);
+        // if (commsize > 1) {
+        //     DumpToFile(("baseline_" + std::to_string(commsize) + ".txt").c_str(), main_array);
+        // } else {
+        //     DumpToFile(("baseline_" + std::to_string(commsize) + ".txt").c_str(), current_array);
+        // }
         delete[] main_array;
     }
     
@@ -80,7 +85,7 @@ int main(int argc, char **argv) {
 void MPIParallelization(double *current_array, int number_rows)
 {
     for (int i = 0; i < number_rows; ++i) {
-        for (int j = 0; j < JSIZE; ++j) {
+        for (size_t j = 0; j < JSIZE; ++j) {
             current_array[JSIZE * i + j] = std::sin(2 * current_array[JSIZE * i + j]);
         }
     }
@@ -131,8 +136,8 @@ void DumpToFile(const char *filename, double *array)
     FILE *ff = nullptr;
     ff = fopen(filename, "w");
 
-    for (int i = 0; i < ISIZE; ++i) {
-        for (int j = 0; j < JSIZE; ++j) {
+    for (size_t i = 0; i < ISIZE; ++i) {
+        for (size_t j = 0; j < JSIZE; ++j) {
             fprintf(ff, "%f", array[JSIZE * i + j]);
         }
         fprintf(ff, "\n");

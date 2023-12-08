@@ -15,8 +15,8 @@ public:
 
     void DefaultFillIn()
     {
-        for (int i = 0; i < x_; ++i) {
-            for (int j = 0; j < y_; ++j) {
+        for (size_t i = 0; i < x_; ++i) {
+            for (size_t j = 0; j < y_; ++j) {
                 array_[x_ * i + j] = 10 * i + j;
             }
         }
@@ -27,9 +27,9 @@ public:
         FILE *ff = nullptr;
         ff = fopen(filename, "w");
 
-        for (int i = 0; i < x_; ++i) {
-            for (int j = 0; j < y_; ++j) {
-                fprintf(ff, "%f", array_[x_ * i + j]);
+        for (size_t i = 0; i < x_; ++i) {
+            for (size_t j = 0; j < y_; ++j) {
+                fprintf(ff, "%f ", array_[x_ * i + j]);
             }
             fprintf(ff, "\n");
         }
