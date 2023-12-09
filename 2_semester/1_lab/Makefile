@@ -23,7 +23,7 @@ first_task_mpi:
 	mpic++ ${SRCDIR}/first_task.cpp -Wall -o ${ODIR}/first_task_mpi
 
 run_first_task_mpi: first_task_mpi
-		mpirun -np 8 ${ODIR}/first_task_mpi
+		mpirun -np 1 ${ODIR}/first_task_mpi
 
 statistic_first_task_mpi: first_task_mpi
 	./run_lab_mpi.sh ${BASE_TH_NMB} first_task_mpi

@@ -8,12 +8,104 @@
 #include "array_file_output.h"
 #include "scoped_time_measure.h"
 
-static constexpr size_t ISIZE = 150;
+static constexpr size_t ISIZE = 10000;
 static constexpr size_t JSIZE = ISIZE;
+static constexpr size_t ORIGINAL_VALUES_NMB = 8;
 
-void MPIParallelization(double **subarrays, int nmb_orig_to_calc, int nmb_calcs, int rank);
-void GatheringAllWork(double **subarrays, double *main_array, int nmb_orig_to_calc, int rank, int start, int i_elems_per_array, int *length_array, int nmb_calc);
+class Worker;
+
+void GatheringAllWork(const Worker& worker);
 void DumpToFile(const char *filename, double *array);
+
+class TransitionArray {
+public:
+    explicit TransitionArray(size_t array_size, int transitions_nmb) : array_size_(array_size), transition_number_(transitions_nmb)
+    {
+        array_ = new double[array_size_];
+    }
+
+    ~TransitionArray()
+    {
+        delete[] array_;
+    }
+
+    double *Get() const
+    {
+        return array_;
+    }
+
+    size_t GetTransitionNmb() const
+    {
+        return transition_number_;
+    }
+
+private:
+    double *array_ {nullptr};
+    size_t array_size_ {0};
+    size_t transition_number_ {0};
+};
+
+struct Worker {
+    // Accepts a range of original values that will need to be calculated
+    explicit Worker(int rank, int start, int end) : rank_(rank), start_(start), end_(end)
+    {
+        if (rank_ == 0) {
+            main_array_ = new double[JSIZE * ISIZE];
+        }
+        // [start; end) => number of initial state to be calculated end - start
+        number_init_states_ = end - start;
+        // For each state we create array, subarrays_ saved pointers to this arrays
+        subarrays_ = new TransitionArray*[number_init_states_];
+
+        for (int i = 0; i < number_init_states_; ++i) {
+            size_t transition_number = ((ISIZE - 1) - (start + i)) / ORIGINAL_VALUES_NMB;
+
+            auto *transition_array = new TransitionArray(JSIZE * (transition_number + 1), transition_number);
+            subarrays_[i] = transition_array;
+            
+            double *current_array = transition_array->Get();
+            // Initialize array
+            for (size_t counter = 0; counter < transition_number + 1; ++counter) {
+                for (size_t j = 0; j < JSIZE; ++j) {
+                    current_array[JSIZE * counter + j] = 10 * (start + i + 8 * counter) + j;
+                }
+            }
+        }
+    }
+    ~Worker()
+    {
+        if (rank_ == 0) {
+            delete[] main_array_;
+        }
+        for (int i = 0; i < number_init_states_; ++i) {
+            delete subarrays_[i];
+        }
+        delete[] subarrays_;
+    }
+    void Calculate()
+    {
+        for (int arr_idx = 0; arr_idx < number_init_states_; ++arr_idx) {
+            double *current_array = subarrays_[arr_idx]->Get();
+            size_t transition_nmb = subarrays_[arr_idx]->GetTransitionNmb();
+
+            for (size_t counter = 0; counter < transition_nmb; ++counter) {
+                for (size_t j = 0; j < JSIZE - 3; ++j) {
+                    current_array[JSIZE * (counter + 1) + j] = std::sin(4 * current_array[JSIZE * counter + (j + 3)]);
+                }
+            }
+        }
+    }
+
+    int rank_ {-1};
+
+    int start_ {0};
+    int end_ {0};
+    int number_init_states_ {0};
+    
+    TransitionArray **subarrays_ {nullptr};
+    // actual only for root rank (0)
+    double *main_array_ {nullptr};
+};
 
 int main(int argc, char **argv) {
     MPI::Init(argc, argv);
@@ -30,11 +122,6 @@ int main(int argc, char **argv) {
     CPU_ZERO(&mask);
     CPU_SET(2 * rank, &mask);
     sched_setaffinity(getpid(), sizeof(cpu_set_t), &mask);
-    
-    double *main_array = nullptr;
-    if (rank == 0) {
-        main_array = new double[ISIZE * JSIZE];
-    }
 
     int number_original_values = 8;
 
@@ -55,143 +142,94 @@ int main(int argc, char **argv) {
         }
     }
 
-    int nmb_orig_to_calc = end - start;
-    int nmb_calc = (ISIZE - rank) / number_original_values;
-    int i_elems_per_array = JSIZE * nmb_calc;
-
-    // std::cout << "[" << start << " " << end << ")" << std::endl;
-    // std::cout << "nmb_elems = " << i_elems_per_array << std::endl;
-
-    double **subarrays = new double*[nmb_orig_to_calc];
-
-    // for (int i = 0; i < nmb_orig_to_calc; ++i) {
-    //     double *current_array = new double[i_elems_per_array + 1];
-    //     subarrays[i] = current_array;
-
-    //     for (size_t j = 0; j < JSIZE; ++j) {
-    //         current_array[j] = 10 * (i + start) + j;
-    //     }
-    // }
-
-    for (int i = 0; i < nmb_orig_to_calc; ++i) {
-        double *current_array = new double[i_elems_per_array + 1];
-        subarrays[i] = current_array;
-
-        for (int counter = 0; counter < nmb_calc; ++counter) {
-            for (size_t j = 0; j < JSIZE; ++j) {
-                current_array[JSIZE * counter + j] = 10 * (i + start + 8 * counter) + j;
-            }
-        }
-    }
-
-    int *length_array = nullptr;
-
-    if (rank == 0) {
-        length_array = new int[number_original_values];
-        for (int i = 0; i < number_original_values; ++i) {
-            length_array[i] = (ISIZE - i) / number_original_values;
-            std::cout << "============================" << length_array[i] << std::endl;
-        }
-    }
+    Worker worker(rank, start, end);
 
     double start_wtime = MPI::Wtime();
-   
-    MPIParallelization(subarrays, nmb_orig_to_calc, nmb_calc, rank);
+    
+    worker.Calculate();
 
     if (commsize > 1) {
-        GatheringAllWork(subarrays, main_array, nmb_orig_to_calc, rank, start, i_elems_per_array, length_array, nmb_calc);
+        GatheringAllWork(worker);
     }
-
-    double end_wtime = MPI::Wtime();
+    
     if (rank == 0) {
+        if (commsize == 1) {
+            for (int i = 0; i < worker.number_init_states_; ++i) {
+                double *current_array = worker.subarrays_[i]->Get();
+                size_t transition_nmb = worker.subarrays_[i]->GetTransitionNmb();
+
+                int offset = worker.start_ + i;
+                // std::cout << transition_nmb << std::endl;
+                for (size_t counter = 0; counter < transition_nmb + 1; ++counter) {
+                    std::memcpy(worker.main_array_ + offset * ISIZE, current_array + counter * JSIZE, JSIZE * sizeof(double));
+                    offset += 8;
+                }
+            }
+        }
+        double end_wtime = MPI::Wtime();
         std::cout << "exec_time: " << end_wtime - start_wtime << std::endl;
-        // if (commsize > 1) {
-        DumpToFile(("first_task_" + std::to_string(commsize) + ".txt").c_str(), main_array);
-        // } else {
-        //     DumpToFile(("baseline_" + std::to_string(commsize) + ".txt").c_str(), current_array);
-        // }
-        delete[] main_array;
+        // DumpToFile(("first_task_" + std::to_string(commsize) + ".txt").c_str(), worker.main_array_);
     }
-
-    for (int i = 0; i < nmb_orig_to_calc; ++i) {
-        delete[] subarrays[i];
-    }
-
-    delete[] subarrays;
-    delete[] length_array;
 
     MPI::Finalize();
     return 0;
 }
 
-void MPIParallelization(double **subarrays, int nmb_orig_to_calc, int nmb_calcs, int rank)
+void GatheringAllWork(const Worker& worker)
 {
-    for (int arr_idx = 0; arr_idx < nmb_orig_to_calc; ++arr_idx) {
-        double *current_array = subarrays[arr_idx];
-
-        for (int counter = 0; counter < nmb_calcs - 1; ++counter) {
-            for (size_t j = 0; j < JSIZE - 3; ++j) {
-                current_array[JSIZE * (counter + 1) + j] = std::sin(4 * current_array[JSIZE * counter + (j + 3)]);
-            }
-        }
-        // if (rank == 0) {
-        //     for (size_t j = 0; j < JSIZE; ++j) {
-        //         std::cout << std::sin(4 * current_array[JSIZE * 0 + (j + 3)]) << std::endl;
-        //     }
-        //     DumpToFile("debug.txt", current_array);
-        // }
-    }
-}
-
-void GatheringAllWork(double **subarrays, double *main_array, int nmb_orig_to_calc, int rank, int start, int i_elems_per_array, int *length_array, int nmb_calc)
-{
-    if (rank == 0) {
+    if (worker.rank_ == 0) {
+        double *main_array = worker.main_array_; 
         auto commsize = MPI::COMM_WORLD.Get_size();
 
-        for (int i = 0; i < nmb_orig_to_calc; ++i) {
-            double *current_array = subarrays[i];
-            int offset = start;
+        for (int i = 0; i < worker.number_init_states_; ++i) {
+            double *current_array = worker.subarrays_[i]->Get();
+            size_t transition_nmb = worker.subarrays_[i]->GetTransitionNmb();
 
-            for (size_t counter = 0; counter < nmb_calc; ++counter) {
+            int offset = worker.start_ + i;
+
+            for (size_t counter = 0; counter < transition_nmb + 1; ++counter) {
                 std::memcpy(main_array + offset * ISIZE, current_array + counter * JSIZE, JSIZE * sizeof(double));
                 offset += 8;
             }
         }
 
         for (int cur_rank = 1; cur_rank < commsize; ++cur_rank) {
-            for (int i = 0; i < length_array[cur_rank]; ++i) {
-                // std::cout << "{============== wait for " << cur_rank << std::endl;
+            MPI_Status status;
+            size_t number_recvs = 0;
+            MPI_Recv(&number_recvs, 1, MPI::LONG_INT, cur_rank, 0, MPI_COMM_WORLD, &status);
 
+            for (size_t i = 0; i < number_recvs; ++i) {
                 double *temp_array = new double[JSIZE];
                 int offset = 0;
-                MPI_Status status;
 
-                MPI_Recv(&offset,    1,                 MPI::INT,    cur_rank, 0, MPI_COMM_WORLD, &status);
+                MPI_Recv(&offset,    1,     MPI::INT,    cur_rank, 0, MPI_COMM_WORLD, &status);
                 MPI_Recv(temp_array, JSIZE, MPI::DOUBLE, cur_rank, 0, MPI_COMM_WORLD, &status);
                 
-                // std::cout << offset << std::endl;
-
-                // int send_rank = status.MPI_SOURCE;
-                // std::cout << "{============== recv " << offset << " from " << send_rank << std::endl;
-                
-                std::memcpy(main_array + offset * ISIZE, temp_array, JSIZE * sizeof(double));
+                std::memcpy(main_array + offset * JSIZE, temp_array, JSIZE * sizeof(double));
                 delete[] temp_array;
             }
         }
     }
     else {
-        for (int i = 0; i < nmb_orig_to_calc; ++i) {
-            double *current_array = subarrays[i];
-            
-            // std::cout << "===================================================" << std::endl;
-            int offset = start;
+        size_t init_states_nmb = worker.number_init_states_;
+        size_t number_of_sends = 0;
 
-            for (int counter = 0; counter < nmb_calc; ++counter) {
-                // std::cout << "send from " << rank << std::endl;
-                // int offset = start + 8 * counter;
-                // std::cout << offset << std::endl;
-                MPI_Send(&offset,                         1,     MPI::INT,    0, 0, MPI_COMM_WORLD);
-                MPI_Send(current_array + counter * JSIZE, JSIZE, MPI::DOUBLE, 0, 0, MPI_COMM_WORLD);
+        for (size_t i = 0; i < init_states_nmb; ++i) {
+            size_t transition_nmb = worker.subarrays_[i]->GetTransitionNmb();
+            number_of_sends += (transition_nmb + 1);
+        }
+        
+        MPI_Send(&number_of_sends, 1, MPI::LONG_INT, 0, 0, MPI_COMM_WORLD);
+
+        for (size_t i = 0; i < init_states_nmb; ++i) {
+            double *current_array = worker.subarrays_[i]->Get();
+            size_t transition_nmb = worker.subarrays_[i]->GetTransitionNmb();
+
+            int offset = worker.start_ + i;
+
+            for (size_t counter = 0; counter < transition_nmb + 1; ++counter) {
+                MPI_Send(&offset                        , 1    , MPI::INT     , 0, 0, MPI_COMM_WORLD);
+                MPI_Send(current_array + counter * JSIZE, JSIZE, MPI::DOUBLE  , 0, 0, MPI_COMM_WORLD);
                 offset += 8;
             }
         }
