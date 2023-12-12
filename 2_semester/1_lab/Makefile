@@ -44,7 +44,7 @@ run_first_task_mpi: first_task_mpi
 
 statistic_first_task_mpi: first_task_mpi
 	./run_lab_mpi.sh ${BASE_TH_NMB} first_task_mpi
-	/bin/python3 ${PY_SCRIPT_PATH}/statistic.py ${BASE_TH_NMB} statistic_first_task_mpi first_task_mpi
+	/bin/python3 ${PY_SCRIPT_PATH}/statistic.py ${BASE_TH_NMB} statistic_first_task_mpi.txt first_task_mpi
 
 # ==================================================================================================================
 
@@ -64,11 +64,11 @@ third_task_mpi:
 	mpic++ ${SRCDIR}/third_task.cpp -Wall -o ${ODIR}/third_task_mpi
 
 run_third_task_mpi: third_task_mpi
-		mpirun -np 1 ${ODIR}/third_task_mpi
+		mpirun -np 8 ${ODIR}/third_task_mpi
 
 statistic_third_task_mpi: third_task_mpi
 	./run_lab_mpi.sh ${BASE_TH_NMB} third_task_mpi
-	/bin/python3 ${PY_SCRIPT_PATH}/statistic.py ${BASE_TH_NMB} statistic_third_task_mpi third_task_mpi
+	/bin/python3 ${PY_SCRIPT_PATH}/statistic.py ${BASE_TH_NMB} statistic_third_task_mpi.txt third_task_mpi
 
 # ==================================================================================================================
 

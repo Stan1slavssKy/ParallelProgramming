@@ -8,7 +8,7 @@
 #include "array_file_output.h"
 #include "scoped_time_measure.h"
 
-static constexpr size_t ISIZE = 25;
+static constexpr size_t ISIZE = 15000;
 static constexpr size_t JSIZE = ISIZE;
 
 class Worker;
@@ -135,8 +135,6 @@ int main(int argc, char **argv) {
         }
     }
 
-    printf("rank = %d, [%ld, %ld)\n", rank, start, end);
-
     Worker worker(rank, commsize, start, end);
     
     worker.Calculate();
@@ -180,7 +178,6 @@ void GatheringAllWork(const Worker& worker)
 
             double *recv_array = new double[recv_size];
 
-            printf("recv_size = %ld, offset = %ld\n", recv_size, offset);
             MPI_Recv(recv_array, recv_size, MPI::DOUBLE, cur_rank, 0, MPI_COMM_WORLD, &status);    
             std::memcpy(main_array + offset, recv_array, recv_size * sizeof(double));
             offset += recv_size;
