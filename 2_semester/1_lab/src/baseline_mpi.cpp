@@ -69,9 +69,9 @@ int main(int argc, char **argv) {
     if (rank == 0) {
         std::cout << "exec_time: " << end_wtime - start_wtime << std::endl;
         // if (commsize > 1) {
-        //     DumpToFile(("baseline_" + std::to_string(commsize) + ".txt").c_str(), main_array);
+        //     DumpToFile(("baseline_mpi" + std::to_string(commsize) + ".txt").c_str(), main_array);
         // } else {
-        //     DumpToFile(("baseline_" + std::to_string(commsize) + ".txt").c_str(), current_array);
+        //     DumpToFile(("baseline_mpi" + std::to_string(commsize) + ".txt").c_str(), current_array);
         // }
         delete[] main_array;
     }

@@ -12,7 +12,7 @@ def draw_graph(thread_time_arr, plot_name):
     E = S / p
 
     plt.figure(figsize=[18, 10])
-    plt.title('Зависимость ускорения от числа процессов для ' + plot_name)
+    plt.title('Зависимость ускорения от числа исполнителей для ' + plot_name)
     plt.plot(p, S)
     plt.xlabel("p")
     plt.ylabel("S")

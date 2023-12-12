@@ -13,8 +13,8 @@ void InitVariantThirdTask();
 
 int main() {
     // InitVariantBaseline();
-    InitVariantFirstTask();
-    // InitVariantSecondTask();
+    // InitVariantFirstTask();
+    InitVariantSecondTask();
     // InitVariantThirdTask();
     return 0;
 }
@@ -55,4 +55,23 @@ void InitVariantFirstTask()
     }
 
     array_handler.DumpToFile("mini_file_to_compare_1_task.txt");
+}
+
+void InitVariantSecondTask()
+{
+    ArrayHandler array_handler(ISIZE, JSIZE);
+    array_handler.DefaultFillIn();
+
+    double *array = array_handler.GetArray();
+    {
+        ScopedTimeMeasure stm;
+
+        for (size_t i = 0; i < ISIZE - 4; ++i) {
+            for (size_t j = 0; j < JSIZE - 2; ++j) {
+                array[JSIZE * i + j] = std::sin(0.1 * array[JSIZE * (i + 4) + (j + 2)]);
+            }
+        }
+    }
+
+    array_handler.DumpToFile("file_to_compare_2_task.txt");  
 }

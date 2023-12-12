@@ -6,18 +6,18 @@
 
 class ArrayHandler {
 public:
-    explicit ArrayHandler(size_t x, size_t y) : x_(x), y_(y)
+    explicit ArrayHandler(size_t x, size_t y) : isize_(x), jsize_(y)
     {
-        array_ = std::make_unique<double[]>(x_ * y_);
+        array_ = std::make_unique<double[]>(isize_ * jsize_);
     }
 
     ~ArrayHandler() = default;
 
     void DefaultFillIn()
     {
-        for (size_t i = 0; i < x_; ++i) {
-            for (size_t j = 0; j < y_; ++j) {
-                array_[x_ * i + j] = 10 * i + j;
+        for (size_t i = 0; i < isize_; ++i) {
+            for (size_t j = 0; j < jsize_; ++j) {
+                array_[jsize_ * i + j] = 10 * i + j;
             }
         }
     }
@@ -27,9 +27,9 @@ public:
         FILE *ff = nullptr;
         ff = fopen(filename, "w");
 
-        for (size_t i = 0; i < x_; ++i) {
-            for (size_t j = 0; j < y_; ++j) {
-                fprintf(ff, "%f ", array_[x_ * i + j]);
+        for (size_t i = 0; i < isize_; ++i) {
+            for (size_t j = 0; j < jsize_; ++j) {
+                fprintf(ff, "%f ", array_[jsize_ * i + j]);
             }
             fprintf(ff, "\n");
         }
@@ -43,8 +43,8 @@ public:
 
 private:
     std::unique_ptr<double[]> array_;
-    size_t x_ {0};
-    size_t y_ {0};
+    size_t isize_ {0};
+    size_t jsize_ {0};
 };
 
 #endif // PARALLELPROGRAMMING_2_SEMESTER_1_LAB_ARRAY_HANDLER_H
