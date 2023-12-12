@@ -71,9 +71,6 @@ int main(int argc, char **argv) {
                 for (size_t j = 0; j < JSIZE - 2; ++j) {
                     main_array[JSIZE * i + j] = std::sin(0.1 * array[JSIZE * (i - end + 4) + (j + 2)]);
                 }
-                if (i == 21) {
-                    printf("rank = %d, %f\n", rank, array[JSIZE * (i - end + 4) + (1 + 2)]);
-                }
             }
         } else {
             for (size_t i = start; i < ISIZE - 4; ++i) {
@@ -88,7 +85,7 @@ int main(int argc, char **argv) {
     double end_wtime = omp_get_wtime();
 
     std::cout << "exec_time: " << end_wtime - start_wtime << std::endl;
-    // DumpToFile(("second_task_openmp_" + std::to_string(thread_number) + ".txt").c_str(), main_array);
+    DumpToFile(("second_task_openmp_" + std::to_string(thread_number) + ".txt").c_str(), main_array);
 
     delete[] main_array;
 

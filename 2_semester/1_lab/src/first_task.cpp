@@ -196,7 +196,7 @@ void GatheringAllWork(const Worker& worker)
         for (int cur_rank = 1; cur_rank < commsize; ++cur_rank) {
             MPI_Status status;
             size_t number_recvs = 0;
-            MPI_Recv(&number_recvs, 1, MPI::LONG_INT, cur_rank, 0, MPI_COMM_WORLD, &status);
+            MPI_Recv(&number_recvs, 1, MPI::LONG_LONG, cur_rank, 0, MPI_COMM_WORLD, &status);
 
             for (size_t i = 0; i < number_recvs; ++i) {
                 double *temp_array = new double[JSIZE];
@@ -219,7 +219,7 @@ void GatheringAllWork(const Worker& worker)
             number_of_sends += (transition_nmb + 1);
         }
         
-        MPI_Send(&number_of_sends, 1, MPI::LONG_INT, 0, 0, MPI_COMM_WORLD);
+        MPI_Send(&number_of_sends, 1, MPI::LONG_LONG, 0, 0, MPI_COMM_WORLD);
 
         for (size_t i = 0; i < init_states_nmb; ++i) {
             double *current_array = worker.subarrays_[i]->Get();

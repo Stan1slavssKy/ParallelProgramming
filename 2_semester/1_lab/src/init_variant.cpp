@@ -3,7 +3,7 @@
 #include "array_file_output.h"
 #include "scoped_time_measure.h"
 
-static constexpr size_t ISIZE = 10000;
+static constexpr size_t ISIZE = 25;
 static constexpr size_t JSIZE = ISIZE;
 
 void InitVariantBaseline();
@@ -14,8 +14,8 @@ void InitVariantThirdTask();
 int main() {
     // InitVariantBaseline();
     // InitVariantFirstTask();
-    InitVariantSecondTask();
-    // InitVariantThirdTask();
+    // InitVariantSecondTask();
+    InitVariantThirdTask();
     return 0;
 }
 
@@ -74,4 +74,33 @@ void InitVariantSecondTask()
     }
 
     array_handler.DumpToFile("file_to_compare_2_task.txt");  
+}
+
+void InitVariantThirdTask()
+{
+    ArrayHandler array_handler_a(ISIZE, JSIZE);
+    ArrayHandler array_handler_b(ISIZE, JSIZE);
+
+    array_handler_a.DefaultFillIn();
+    array_handler_b.ZeroFillIn();
+
+    double *a = array_handler_a.GetArray();
+    double *b = array_handler_b.GetArray();
+
+    {
+        ScopedTimeMeasure stm;
+
+        for (size_t i = 0; i < ISIZE; ++i) {
+            for (size_t j = 0; j < JSIZE; ++j) {
+                a[JSIZE * i + j] = std::sin(0.1 * a[JSIZE * i + j]);
+            }
+        }
+        for (size_t i = 0; i < ISIZE - 1; ++i) {
+            for (size_t j = 2; j < JSIZE; ++j) {
+                b[JSIZE * i + j] = 1.5 * a[JSIZE * (i + 1) + (j - 2)];
+            }
+        }
+    }
+
+    array_handler_b.DumpToFile("mini_file_to_compare_3_task.txt");  
 }

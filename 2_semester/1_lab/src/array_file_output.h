@@ -22,6 +22,15 @@ public:
         }
     }
 
+    void ZeroFillIn()
+    {
+        for (size_t i = 0; i < isize_; ++i) {
+            for (size_t j = 0; j < jsize_; ++j) {
+                array_[jsize_ * i + j] = 0;
+            }
+        }
+    }
+
     void DumpToFile(const char *filename) const
     {
         FILE *ff = nullptr;

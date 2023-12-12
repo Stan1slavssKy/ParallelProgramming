@@ -58,6 +58,20 @@ statistic_second_task_openmp: second_task_openmp
 	./run_lab_openmp.sh ${BASE_TH_NMB} second_task_openmp
 	/bin/python3 ${PY_SCRIPT_PATH}/statistic.py ${BASE_TH_NMB} statistic_second_task_openmp.txt second_task_openmp
 
+# ==================================================================================================================
+
+third_task_mpi:
+	mpic++ ${SRCDIR}/third_task.cpp -Wall -o ${ODIR}/third_task_mpi
+
+run_third_task_mpi: third_task_mpi
+		mpirun -np 8 ${ODIR}/third_task_mpi
+
+statistic_third_task_mpi: third_task_mpi
+	./run_lab_mpi.sh ${BASE_TH_NMB} third_task_mpi
+	/bin/python3 ${PY_SCRIPT_PATH}/statistic.py ${BASE_TH_NMB} statistic_third_task_mpi third_task_mpi
+
+# ==================================================================================================================
+
 clean:
 	rm -r ${ODIR}/*
 
