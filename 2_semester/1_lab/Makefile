@@ -64,7 +64,7 @@ third_task_mpi:
 	mpic++ ${SRCDIR}/third_task.cpp -Wall -o ${ODIR}/third_task_mpi
 
 run_third_task_mpi: third_task_mpi
-		mpirun -np 8 ${ODIR}/third_task_mpi
+		mpirun -np 1 ${ODIR}/third_task_mpi
 
 statistic_third_task_mpi: third_task_mpi
 	./run_lab_mpi.sh ${BASE_TH_NMB} third_task_mpi

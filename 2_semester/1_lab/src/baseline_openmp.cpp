@@ -6,7 +6,7 @@
 #include "array_file_output.h"
 #include "scoped_time_measure.h"
 
-static constexpr size_t ISIZE = 10000;
+static constexpr size_t ISIZE = 15000;
 static constexpr size_t JSIZE = ISIZE;
 
 int GetThreadNumber(int argc, char** argv);

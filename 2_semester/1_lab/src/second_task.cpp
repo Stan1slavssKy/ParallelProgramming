@@ -7,7 +7,7 @@
 #include "array_file_output.h"
 #include "scoped_time_measure.h"
 
-static constexpr size_t ISIZE = 10000;
+static constexpr size_t ISIZE = 15000;
 static constexpr size_t JSIZE = ISIZE;
 
 void DumpToFile(const char *filename, double *array);
@@ -85,7 +85,7 @@ int main(int argc, char **argv) {
     double end_wtime = omp_get_wtime();
 
     std::cout << "exec_time: " << end_wtime - start_wtime << std::endl;
-    DumpToFile(("second_task_openmp_" + std::to_string(thread_number) + ".txt").c_str(), main_array);
+    // DumpToFile(("second_task_openmp_" + std::to_string(thread_number) + ".txt").c_str(), main_array);
 
     delete[] main_array;
 

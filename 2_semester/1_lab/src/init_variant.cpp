@@ -3,7 +3,7 @@
 #include "array_file_output.h"
 #include "scoped_time_measure.h"
 
-static constexpr size_t ISIZE = 25;
+static constexpr size_t ISIZE = 15000;
 static constexpr size_t JSIZE = ISIZE;
 
 void InitVariantBaseline();
@@ -12,10 +12,10 @@ void InitVariantSecondTask();
 void InitVariantThirdTask();
 
 int main() {
-    // InitVariantBaseline();
+    InitVariantBaseline();
     // InitVariantFirstTask();
     // InitVariantSecondTask();
-    InitVariantThirdTask();
+    // InitVariantThirdTask();
     return 0;
 }
 
